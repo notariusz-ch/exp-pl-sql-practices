@@ -1,0 +1,50 @@
+----------------------------------------------------------------------------
+-- We need an object that would reference table EMP
+SQL> create or replace procedure p_referenceEmp is
+  2      v_nr number;
+  3  begin
+  4      select count(*) into v_nr from emp;
+  5  end;
+  6  /
+Procedure created.
+
+-- We need a function-based index on the table EMP
+SQL> create index demo_ename_FBI on emp(lower(ename));
+Index created.
+
+----------------------------------------------------------------------------
+-- Drop index directly
+SQL> drop index demo_ename_FBI;
+Index dropped.
+
+-- Procedure is invalidated (this is the default behavior)
+SQL> select status from user_objects
+  2  where object_name='P_REFERENCEEMP';
+STATUS                                                                          
+-------                                                                         
+INVALID                                                                         
+
+----------------------------------------------------------------------------
+-- Recompile procedure 
+SQL> alter procedure p_referenceEmp compile;
+Procedure altered.
+-- Recreate index
+SQL> create index demo_ename_FBI on emp(lower(ename));
+Index created.
+
+----------------------------------------------------------------------------
+-- Drop index via special function
+SQL> begin
+  2      p_dropFBIndex('DEMO_ENAME_FBI');
+  3  end;
+  4  /
+PL/SQL procedure successfully completed.
+
+-- Procedure is VALID! As needed
+SQL> select status from user_objects
+  2  where object_name='P_REFERENCEEMP';
+
+STATUS                                                                          
+-------                                                                         
+VALID                                                                           
+SQL> spool off

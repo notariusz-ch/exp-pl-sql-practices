@@ -1,0 +1,37 @@
+SQL> @05_DBMS_SQL_Example1_11gOnly.sql
+SQL> set echo on
+SQL> set serveroutput on
+SQL> 
+SQL> CREATE or REPLACE PROCEDURE p_explainCursor (io_ref_cur IN OUT SYS_REFCURSOR)
+  2  IS
+  3  	 v_cur	    INTEGER := dbms_sql.open_cursor;
+  4  	 v_cols_nr NUMBER := 0;
+  5  	 v_cols_tt dbms_sql.desc_tab;
+  6  BEGIN
+  7  	 v_cur:=dbms_sql.to_cursor_number(io_ref_cur);
+  8  	 dbms_sql.describe_columns (v_cur, v_cols_nr, v_cols_tt);
+  9  	 FOR i IN 1 .. v_cols_nr LOOP
+ 10  	     dbms_output.put_line(v_cols_tt (i).col_name);
+ 11  	 END LOOP;
+ 12  	 io_ref_cur:=dbms_sql.to_refcursor(v_cur);
+ 13  END;
+ 14  /
+
+Procedure created.
+
+SQL> DECLARE
+  2  	 v_tx VARCHAR2(256):='SELECT * FROM dept';
+  3  	 v_cur SYS_REFCURSOR;
+  4  BEGIN
+  5  	 OPEN v_cur FOR v_tx;
+  6  	 p_explainCursor(v_cur);
+  7  	 CLOSE v_cur;
+  8    END;
+  9  /
+DEPTNO                                                                          
+DNAME                                                                           
+LOC                                                                             
+
+PL/SQL procedure successfully completed.
+
+SQL> spool off

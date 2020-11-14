@@ -1,0 +1,77 @@
+SQL> @01_NativeDynamicSQL_Example1.sql
+SQL> set echo on
+SQL> -- Make you output look pretty in SQL*Plus
+SQL> column ID_NR format 99999
+SQL> column DISPLAY_TX format A15
+SQL> 
+SQL> -- Create object type
+SQL> -- It should look exactly like the result you need
+SQL> CREATE TYPE lov_t IS OBJECT (id_nr NUMBER, display_tx VARCHAR2(256))
+  2  /
+
+Type created.
+
+SQL> 
+SQL> -- Create a collection
+SQL> CREATE TYPE lov_tt AS TABLE OF lov_t
+  2  /
+
+Type created.
+
+SQL> 
+SQL> -- Create a function that returns a collection
+SQL> --
+SQL> CREATE or replace FUNCTION f_getlov_tt  (
+  2  	      i_table_tx    VARCHAR2,
+  3  	      i_id_tx	      VARCHAR2,
+  4  	      i_display_tx VARCHAR2,
+  5  	      i_order_nr   VARCHAR2,
+  6  	      i_limit_nr   NUMBER:=100)
+  7  RETURN lov_tt
+  8  IS
+  9  	 v_out_tt lov_tt := lov_tt();
+ 10  	 v_sql_tx VARCHAR2(32767);
+ 11  BEGIN
+ 12  	 v_sql_tx:='SELECT lov_item_t '||
+ 13  			 'FROM (SELECT lov_t(' ||
+ 14  					dbms_assert.simple_sql_name(i_id_tx)||', '||
+ 15  			   dbms_assert.simple_sql_name(i_display_tx)||') lov_item_t '||
+ 16  			 ' FROM '||dbms_assert.simple_sql_name(i_table_tx)||
+ 17  			    ' order by '||dbms_assert.simple_sql_name(i_order_nr)||
+ 18  		     ')' ||
+ 19  		  ' WHERE ROWNUM <= :limit';
+ 20  
+ 21  	 EXECUTE IMMEDIATE v_sql_tx
+ 22  	 BULK COLLECT INTO v_out_tt
+ 23  	 USING i_limit_nr;
+ 24  
+ 25  	 RETURN v_out_tt;
+ 26  END;
+ 27  /
+
+Function created.
+
+SQL> 
+SQL> --
+SQL> SELECT *
+  2  FROM TABLE(
+  3  		CAST
+  4  		    (
+  5  		    f_getlov_tt('EMP',	 -- table
+  6  				'EMPNO', -- ID column
+  7  				'ENAME', -- Display column
+  8  				'ENAME', -- Order column
+  9  				5)	 -- number of returned records
+ 10  		    AS lov_tt
+ 11  		    )
+ 12  	       );
+
+ ID_NR DISPLAY_TX                                                               
+------ ---------------                                                          
+  7876 ADAMS                                                                    
+  7499 ALLEN                                                                    
+  7698 BLAKE                                                                    
+  7782 CLARK                                                                    
+  7902 FORD                                                                     
+
+SQL> spool off

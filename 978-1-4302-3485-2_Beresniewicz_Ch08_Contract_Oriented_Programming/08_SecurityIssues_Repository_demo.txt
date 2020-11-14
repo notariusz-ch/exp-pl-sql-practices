@@ -1,0 +1,6 @@
+-- Get all salesman hired after Sept 1, 2981
+SQL> select f_umbrella_cl (100,'SALESMAN','19810901') OUT_CL from dual;
+OUT_CL
+------------------------------------------------------------------------------------------------------
+<html><table><tr><td>7654</td><td>MARTIN</td></tr><tr><td>7844</td><td>TURNER</td></tr></table></html>
+SQL> exit

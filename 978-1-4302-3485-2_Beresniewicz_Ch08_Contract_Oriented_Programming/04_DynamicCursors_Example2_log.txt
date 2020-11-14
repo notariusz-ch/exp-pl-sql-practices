@@ -1,0 +1,79 @@
+SQL> @03_DynamicCursors_Example2.sql
+SQL> set echo on
+SQL> set pagesize 100
+SQL> set line 80
+SQL> -- Make you output look pretty in SQL*Plus
+SQL> column ID_NR format 99999
+SQL> column DISPLAY_TX format A15
+SQL> 
+SQL> -- Required object types are the same as in 01_NativeDynamicSQL_Example1.sql
+SQL> -- Create a function that returns a collection
+SQL> CREATE or REPLACE FUNCTION f_getlov_tt  (
+  2  	     i_table_tx    VARCHAR2,
+  3  	     i_id_tx	     VARCHAR2,
+  4  	     i_display_tx VARCHAR2,
+  5  	     i_order_nr   VARCHAR2,
+  6  	     i_limit_nr     NUMBER:=50)
+  7  RETURN lov_tt
+  8  IS
+  9  	 v_out1_tt lov_tt := lov_tt();
+ 10  	 v_out2_tt lov_tt := lov_tt();
+ 11  	 v_sql_tx VARCHAR2(32767);
+ 12  	 v_cur SYS_REFCURSOR;
+ 13  BEGIN
+ 14  	 v_sql_tx:='SELECT lov_t(' ||
+ 15  				    dbms_assert.simple_sql_name(i_id_tx)||','||
+ 16  		       dbms_assert.simple_sql_name(i_display_tx)||')'||
+ 17  	   ' FROM '||dbms_assert.simple_sql_name(i_table_tx)||
+ 18  	   ' ORDER BY '||dbms_assert.simple_sql_name(i_order_nr);
+ 19  
+ 20  	 OPEN v_cur FOR v_sql_tx;
+ 21  	 FETCH v_cur BULK COLLECT INTO v_out1_tt LIMIT i_limit_nr;
+ 22  	 IF v_out1_tt.count=i_limit_nr AND UPPER(v_out1_tt(i_limit_nr).display_tx)>'N' then
+ 23  		FETCH v_cur BULK COLLECT INTO v_out2_tt;
+ 24  		SELECT v_out1_tt MULTISET UNION v_out2_tt INTO v_out1_tt FROM DUAL;
+ 25  	 END IF;
+ 26  	 CLOSE v_cur;
+ 27  
+ 28  	 RETURN v_out1_tt;
+ 29  END;
+ 30  /
+
+Function created.
+
+SQL> -- Run the query with limit=11 (to illustrate the business case)
+SQL> -- since 11th name (SCOTT) is above the middle of the alfabet
+SQL> -- which means we should continue untill the end
+SQL> SELECT *
+  2  FROM TABLE(
+  3  		CAST
+  4  		    (
+  5  		    f_getlov_tt('EMP',	 -- table
+  6  				'EMPNO', -- ID column
+  7  				'ENAME', -- Display column
+  8  				'ENAME', -- Order column
+  9  				11)	  -- number of returned records
+ 10  		    AS lov_tt
+ 11  		    )
+ 12  	       );
+
+ ID_NR DISPLAY_TX                                                               
+------ ---------------                                                          
+  7876 ADAMS                                                                    
+  7499 ALLEN                                                                    
+  7698 BLAKE                                                                    
+  7782 CLARK                                                                    
+  7902 FORD                                                                     
+  7900 JAMES                                                                    
+  7566 JONES                                                                    
+  7839 KING                                                                     
+  7654 MARTIN                                                                   
+  7934 MILLER                                                                   
+  7788 SCOTT                                                                    
+  7369 SMITH                                                                    
+  7844 TURNER                                                                   
+  7521 WARD                                                                     
+
+14 rows selected.
+
+SQL> spool off

@@ -1,0 +1,57 @@
+SQL> @03_DynamicCursors_Example1.sql
+SQL> 
+SQL> CREATE or replace FUNCTION f_getRefCursor_ref
+  2  	     (i_type_tx VARCHAR2:='EMP',
+  3  	     i_param_xml XMLTYPE:= XMLTYPE(
+  4  		     '<param col1_tx="DEPTNO" value1_tx="20" col2_tx="ENAME" value2_tx="KING"/>')
+  5  	     )
+  6  RETURN SYS_REFCURSOR
+  7  IS
+  8  	 v_out_ref SYS_REFCURSOR;
+  9  	 v_sql_tx VARCHAR2(32767);
+ 10  BEGIN
+ 11  	 IF i_type_tx = 'EMP' THEN
+ 12  	     SELECT
+ 13  		 'WITH param AS  ('||
+ 14  		 '    SELECT   TO_NUMBER(EXTRACTVALUE (in_xml, ''/param/@value1_tx'')) value1, '||
+ 15  		 '		       EXTRACTVALUE (in_xml, ''/param/@value2_tx'') value2 '||
+ 16  		 '    FROM (SELECT :1 in_xml FROM DUAL) '||
+ 17  		 '			       ) '||
+ 18  		 ' SELECT count(*)'||
+ 19  		 ' FROM scott.emp, '||
+ 20  		 '	       param '||
+ 21  		 ' WHERE emp.'|| dbms_assert.simple_sql_name(
+ 22  					     EXTRACTVALUE (i_param_xml, '/param/@col1_tx')
+ 23  							 )||'=param.value1 '||
+ 24  		 'OR emp.'|| dbms_assert.simple_sql_name(
+ 25  					    EXTRACTVALUE (i_param_xml, '/param/@col2_tx')
+ 26  					     )||'=param.value2'
+ 27  	     INTO v_sql_tx  FROM DUAL;
+ 28  
+ 29  	 ELSIF i_type_tx = 'B' THEN
+ 30  	     v_sql_tx:='<queryB>';
+ 31  	 END IF;
+ 32  	 OPEN v_out_ref FOR v_sql_tx USING i_param_xml;
+ 33  	 RETURN v_out_ref;
+ 34  END;
+ 35  /
+
+Function created.
+
+SQL>  declare
+  2  	 v_ref SYS_REFCURSOR;
+  3  
+  4  	 v_out_nr number;
+  5   begin
+  6  	 v_ref:=f_getRefCursor_ref('EMP');
+  7  
+  8  	 fetch v_ref into v_out_nr;
+  9  	 dbms_output.put_line('Count:'||v_out_nr);
+ 10  	 close v_ref;
+ 11   end;
+ 12  /
+Count:7                                                                                                                                                                                                                                                                                                     
+
+PL/SQL procedure successfully completed.
+
+SQL> spool off

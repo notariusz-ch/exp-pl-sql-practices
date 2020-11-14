@@ -1,0 +1,45 @@
+---------------------------------------------------------------------------------------------------
+-- Sample data. Notice that 4th row has alpha-numeric value in the second column - this row should be skipped
+-- In this example I excluded the part to take CSV file from the client and load it into a CLOB, 
+-- because in different environments it should be done differently
+
+SQL> insert into t_incoming (id, map_id, upload_dt, data_cl)
+  2   values (999 1, sysdate,
+  3   'Restaurant,ID,Guests,Scheduled,Correction,Remarks'||chr(10)||
+  4   'Peter Luger,10001,16,20110906,,Book Release'||chr(10)||
+  5   'Snug Harbor,2345,3,20111201,20111205,Just good music'||chr(10)||
+  6   'Small Diner,A2345,2,20111001,,Quick lunch'||chr(10)
+  7    );
+
+1 row created.
+SQL> set serveroutput on
+
+---------------------------------------------------------------------------------------------------
+-- Process incoming feed #999
+
+SQL> begin
+  2  feed_pkg.p_process(999);
+  3  end;
+  4  /
+Row:4 failed with the error ORA-01722: invalid number                           
+
+PL/SQL procedure successfully completed.
+
+---------------------------------------------------------------------------------------------------
+-- Validate that data is loaded correctly. Expected result:
+--   * one reservation #10001
+--   * reservation and correction #2345
+
+SQL> column Reserve_ID format 99999
+SQL> column Reservation_ID format 99999
+SQL> column Restaurant_TX format A15
+SQL> column Guests_NR format 99
+SQL> select * from reserve;
+
+RESERVE_ID RESERVATION_ID RESTAURANT_TX   GUESTS_NR DATE_DT                     
+---------- -------------- --------------- --------- --------                    
+         1          10001 Peter Luger            16 20110906                    
+         2           2345 Snug Harbor             3 20111201                    
+         3           2345                           20111205                    
+
+SQL> spool off

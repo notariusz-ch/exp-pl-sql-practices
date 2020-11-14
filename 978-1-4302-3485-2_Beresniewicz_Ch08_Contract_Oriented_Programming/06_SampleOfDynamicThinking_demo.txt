@@ -1,0 +1,35 @@
+------------------------------------------------------------------------------------------------
+-- The task is to clone department 10 and its employees
+SQL> begin
+  2  clone_pkg.p_clone('DEPT','DEPTNO',10);
+  3  end;
+  4  /
+PL/SQL procedure successfully completed.
+
+------------------------------------------------------------------------------------------------
+-- New department is created (ID=1, since we just created a new sequence)
+SQL> select * from dept order by deptno;
+    DEPTNO DNAME          LOC                                                   
+---------- -------------- -------------                                         
+         1 ACCOUNTING     NEW YORK                                              
+        10 ACCOUNTING     NEW YORK                                              
+        20 RESEARCH       DALLAS                                                
+        30 SALES          CHICAGO                                               
+        40 OPERATIONS     BOSTON                                                
+5 rows selected.
+
+------------------------------------------------------------------------------------------------
+-- Employees were also cloned with new IDs
+SQL> select empno, ename, deptno from emp where deptno in (1,10) order by deptno,empno;
+     EMPNO ENAME          DEPTNO                                                
+---------- ---------- ----------                                                
+         2 MILLER              1                                                
+         3 KING                1                                                
+         4 CLARK               1                                                
+      7782 CLARK              10                                                
+      7839 KING               10                                                
+      7934 MILLER             10                                                
+
+6 rows selected.
+
+SQL> spool off

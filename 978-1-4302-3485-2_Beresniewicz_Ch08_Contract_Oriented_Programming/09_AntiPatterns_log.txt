@@ -1,0 +1,73 @@
+SQL> @09_AntiPatterns.sql
+SQL> ---------------------------------------------------------------------------------------
+SQL> --- Less efficient case
+SQL> CREATE or REPLACE FUNCTION f_getSumSal_nr (i_empno_tx VARCHAR2)
+  2  RETURN NUMBER
+  3  IS
+  4  	 v_out_nr NUMBER:=0;
+  5  	 v_sql_tx VARCHAR2(2000);
+  6  BEGIN
+  7  	 IF i_empno_tx IS NOT NULL THEN
+  8  	     v_sql_tx:='SELECT sum(sal) FROM emp WHERE empno IN ('||i_empno_tx||')';
+  9  	     EXECUTE IMMEDIATE v_sql_tx INTO v_out_nr;
+ 10  	 END IF;
+ 11  	 RETURN v_out_nr;
+ 12  END;
+ 13  /
+
+Function created.
+
+SQL> 
+SQL> ----------------------------------------------------------------------------------------
+SQL> -- Result
+SQL> declare
+  2  	 v_list_tx varchar2(256):='7369,7499,7521';
+  3  	 v_sum_nr number;
+  4  begin
+  5  	 v_sum_nr:=f_getSumSal_nr(v_list_tx);
+  6  	 dbms_output.put_line('Total:'||v_sum_nr);
+  7  end;
+  8  /
+Total:3650                                                                                                                                                                                                                                                                                                  
+
+PL/SQL procedure successfully completed.
+
+SQL> 
+SQL> 
+SQL> ----------------------------------------------------------------------------------------
+SQL> -- More efficient option
+SQL> CREATE OR REPLACE TYPE id_tt IS TABLE OF NUMBER
+  2  /
+
+Type created.
+
+SQL> CREATE OR REPLACE FUNCTION f_getSumSal_nr (i_tt id_tt)
+  2  RETURN NUMBER IS
+  3  	 v_out_nr NUMBER:=0;
+  4  BEGIN
+  5  	 IF i_tt IS NOT NULL AND i_tt.count>0 THEN
+  6  	     SELECT sum(sal) INTO v_out_nr
+  7  	     FROM emp
+  8  	     WHERE empno IN (SELECT t.column_value FROM TABLE(CAST(i_tt as id_tt)) t);
+  9  	 END IF;
+ 10  	 RETURN v_out_nr;
+ 11  END;
+ 12  /
+
+Function created.
+
+SQL> ----------------------------------------------------------------------------------------
+SQL> -- Result is the same
+SQL> declare
+  2  	 v_list_tt id_tt:=id_tt(7369,7499,7521);
+  3  	 v_sum_nr number;
+  4  begin
+  5  	 v_sum_nr:=f_getSumSal_nr(v_list_tt);
+  6  	 dbms_output.put_line('Total:'||v_sum_nr);
+  7  end;
+  8  /
+Total:3650                                                                                                                                                                                                                                                                                                  
+
+PL/SQL procedure successfully completed.
+
+SQL> spool off
